@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<!--
+Fullscreen: https://www.khanacademy.org/computer-programming/2048/5791426150531072?height=500
+
+Code by wowsk created under an MIT license
+
+Concept by:
+gabrielecirulli
+http://gabrielecirulli.github.io/2048/
+
+TODO:
+give me ideas please!
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>2048 (HTML)</title>
+        <style>
+            body{
+                font-family: sans-serif;
+                font-weight:bold;
+            }
+            #gameboard{
+                background:rgb(163, 163, 163);
+                padding:10px;
+                border-radius:6px;
+            }
+            #game{
+                width:460px;
+                margin:0 auto;
+            }
+            #note{
+                margin-top:10px;
+                text-align:CENTER;
+            }
+            .gameEnding{
+                z-index:1;
+                opacity:0;
+                color:rgb(237, 237, 237);
+                font-size:60px;
+                width:460px;
+                height:445px;
+                margin:auto;
+                position:absolute;
+            }
+            .gameEndingText{
+                padding-top:130px;
+                position:relative;
+                text-align:center;
+            }
+            .endingButton{
+                position:relative;
+                border:none;
+                color:white;
+                height:40px;
+                font-size:20px;
+                border-radius:3px;
+                background:rgb(46, 46, 46);
+                font-weight:bold;
+                margin:0 auto;
+                display:block;
+                text-align:CENTER;
+                transition:background 0.4s;
+            }
+            .endingButton:hover{
+                cursor:POINTER;
+                background:rgb(117, 117, 117);
+                transition:background 0.4s;
+            }
+            .tile{
+                width:100px;
+                height:100px;
+                display:inline-block;
+                margin:3px;
+                border-radius:3px;
+                vertical-align:top;
+                line-height:100px;
+                text-align:CENTER;
+                color:white;
+                font-size:40px;
+                background:rgb(255, 247, 25);
+            }
+            .open{
+                background:rgb(209, 207, 209);
+            }
+            .tile2{
+                font-size:55px;
+                background:rgb(250, 241, 225);
+                color:rgb(56, 56, 56);
+            }
+            .tile4{
+                font-size:55px;
+                background:rgb(255, 237, 204);
+                color:rgb(56, 56, 56);
+            }
+            .tile8{
+                font-size:55px;
+                background:rgb(255, 216, 148);
+            }
+            .tile16{
+                font-size:55px;
+                background:rgb(255, 118, 59);
+            }
+            .tile32{
+                font-size:55px;
+                background:rgb(255, 77, 0);
+            }
+            .tile64{
+                font-size:55px;
+                background:rgb(255, 43, 0);
+            }
+            .tile128{
+                font-size:55px;
+                background:rgb(255, 202, 56);
+            }
+            .tile256{
+                font-size:55px;
+                background:rgb(250, 226, 92);
+            }
+            .tile512{
+                background:rgb(255, 233, 36);
+            }
+            .tile1024{
+                background:rgb(255, 247, 25);
+            }
+            .score{
+                display:inline;
+            }
+            #highScore{
+                float:right;
+            }
+            #gameCover{
+                z-index:0;
+                border-radius:6px;
+                width:460px;
+                height:444px;
+                position:absolute;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="game">
+        <div class="score" id="score">Score: <div class="score" id="scoreNum">0</div></div>
+        <div class="score" id="highScore">High Score: <div class="score" id="highScoreNum">0</div></div>
+        <div id="gameOver" class="gameEnding">
+            <div class="gameEndingText">Game Over</div>
+            <!--<button class="restart">Try Again</button>-->
+        </div>
+        <div id="gameWon" class="gameEnding">
+            <div class="gameEndingText endingStuff">You win!</div>
+            <button class="endingButton endingStuff" onClick="continueGame()">Continue</button>
+        </div>
+        <div id="gameCover">
+        </div>
+        <div id="gameboard">
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <br>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <br>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <br>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+            <div class="tile open"></div>
+        </div>
+        </div>
+        <div id="note">HOW TO PLAY: Use your arrow keys to move the tiles. When two tiles with the same number touch, they merge into one!<br><br>Glitch fixed!</div>
+	    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+        <script>
+        var anyTilesMoved;
+        var slidingUp;
+        var slidingDown;
+        var slidingLeft;
+        var slidingRight;
+        var score=0;
+        var timer=4;
+        var alreadyWon=false;
+        var scoreEl=$(".score")[1];
+        var highScoreEl=$(".score")[3];
+        if(localStorage.getItem("wowsk-2048-highScore")===null) {
+            localStorage.setItem("wowsk-2048-highScore",0)
+        }else{
+            highScoreEl.innerHTML=localStorage.getItem("wowsk-2048-highScore");
+        }
+        var gameOverNow=false;
+        function randomInt(low,high) {
+            return Math.floor(Math.random() * high)+low;
+        }
+        function growShrink(num,tile) {
+            if(num<1024) {
+                $(tile).animate({fontSize:"70px"},200)
+                $(tile).animate({fontSize:"55px"},200)
+            }else{
+                $(tile).animate({fontSize:"50px"},200)
+                $(tile).animate({fontSize:"40px"},200)
+            }
+        }
+        function addNum(num,tileIndex,openTiles) {
+            tile=openTiles[tileIndex]
+            tile.textContent=num;
+            $(tile).removeClass("open");
+            $(tile).addClass("filled")
+            $(tile).addClass("tile"+num)
+            growShrink(0,tile)
+        }
+        function fillOpenTile() {
+            var openTiles=$(".open");
+            randomNum=Math.random();
+            if(randomNum<0.9){
+                addNum(2,randomInt(0,openTiles.length),openTiles);
+            }else{
+                addNum(4,randomInt(0,openTiles.length),openTiles);
+            }
+        }
+        fillOpenTile();
+        fillOpenTile();
+        function gameOver() {
+            $("#gameboard").animate({opacity:"0.5"})
+            $("#gameOver").animate({opacity:"1"});
+        }
+        function gameWon() {
+            $("#gameCover").animate({opacity:"0.5",backgroundColor:"rgb(255, 196, 0)"})
+            $("#gameWon").animate({opacity:"1"});
+        }
+        function continueGame() {
+            $("#gameCover").animate({opacity:"0"})
+            $("#gameWon").animate({opacity:"0"});
+        }
+        function checkForGameOver() {
+            var filledTiles=$(".filled");
+            for(var i=0; i<filledTiles.length; i++) {
+                if($(filledTiles[i]).hasClass("tile2048")&&!alreadyWon) {
+                    alreadyWon=true;
+                    gameWon();
+                }
+            }
+            if($(".open").length===0) {
+            var tiles=$(".tile");
+            for(var i=0; i<tiles.length; i++) {
+                var tileNum=tiles[i].textContent;
+                if(i===0){
+                    if(tileNum===tiles[i+4].textContent||tileNum===tiles[i+1].textContent) {
+                    return;
+                    }
+                }
+                if(i>0&&i<3) {
+                    if(tileNum===tiles[i-1].textContent||tileNum===tiles[i+4].textContent||tileNum===tiles[i+1].textContent) {
+                        return;
+                    }
+                }
+                if(i===3) {
+                    if(tileNum===tiles[i-1].textContent||tileNum===tiles[i+4].textContent) {
+                    return;
+                    }
+                }
+                if(i===7||i===11) {
+                    if(tileNum===tiles[i-1].textContent||tileNum===tiles[i+4].textContent||tileNum===tiles[i-4].textContent) {
+                    return;
+                    }
+                }
+                if(i===4||i===8) {
+                    if(tileNum===tiles[i+1].textContent||tileNum===tiles[i+4].textContent||tileNum===tiles[i-4].textContent) {
+                        return;
+                    }
+                }
+                if(i>4&&i<11&&i!==8&&i!==7) {
+                    if(tileNum===tiles[i-1].textContent||tileNum===tiles[i+4].textContent||tileNum===tiles[i-4].textContent||tileNum===tiles[i+1].textContent) {
+                    return;
+                    }
+                }
+                if(i===12) {
+                    if(tileNum===tiles[i-4].textContent||tileNum===tiles[i+1].textContent) {
+                    return;
+                    }
+                }
+                if(i>12&&i<15) {
+                    if(tileNum===tiles[i-1].textContent||tileNum===tiles[i-4].textContent||tileNum===tiles[i+1].textContent) {
+                    return;
+                }
+                }
+                if(i===tiles.length-1){
+                    if(tileNum===tiles[i-1].textContent||tileNum===tiles[i-4].textContent) {
+                    return;
+                    }
+                }
+            }
+            gameOver();
+        }
+        }
+        function removeClassFromAll(className,els) {
+            for(var i=0; i<els.length; i++) {
+                $(els[i]).removeClass(className)
+            }
+        }
+        function moveTile(from,to,num,tiles) {
+            $(tiles[from]).removeClass("tile"+num);
+            $(tiles[from]).removeClass("filled");
+            $(tiles[from]).addClass("open");
+            tiles[from].textContent="";
+            $(tiles[to]).addClass("tile"+num);
+            $(tiles[to]).addClass("filled");
+            $(tiles[to]).removeClass("open");
+            tiles[to].textContent=num;
+            if(!$(tiles[from]).hasClass("tile")){
+                $(tiles[from]).addClass("tile");
+            }
+        }
+        function combineTile(from,to,num,tiles) {
+            score+=num*2;
+            scoreEl.innerHTML=score;
+            if(localStorage.getItem("wowsk-2048-highScore")<score) {
+                localStorage.setItem("wowsk-2048-highScore",score)
+                highScoreEl.innerHTML=localStorage.getItem("wowsk-2048-highScore");
+            }
+            $(tiles[from]).removeClass("tile"+num);
+            $(tiles[from]).removeClass("filled");
+            $(tiles[from]).addClass("open");
+            tiles[from].textContent="";
+            $(tiles[to]).removeClass("tile"+num);
+            $(tiles[to]).addClass("tile"+num*2);
+            tiles[to].textContent=num*2;
+            growShrink(num*2,tiles[to])
+            if(!$(tiles[from]).hasClass("tile")){
+                $(tiles[from]).addClass("tile");
+            }
+        }
+        function slideUp() {
+            timer++;
+            var tiles=$(".tile")
+            var againUp=false;
+            for(var i=4; i<tiles.length; i++) {
+                if($(tiles[i]).hasClass("filled") && !$(tiles[i-4]).hasClass("filled")){
+                    moveTile(i,i-4,tiles[i].textContent,tiles)
+                    againUp=true;
+                    anyTilesMoved=true;
+                }else if($(tiles[i]).hasClass("filled")&&tiles[i].textContent===tiles[i-4].textContent&&!$(tiles[i]).hasClass("combined")&&!$(tiles[i-4]).hasClass("combined")) {
+                    combineTile(i,i-4,tiles[i].textContent,tiles)
+                    anyTilesMoved=true;
+                    $(tiles[i-4]).addClass("combined")
+                }
+            }
+            if(!againUp) {
+                window.clearInterval(slidingUp);
+                timer=4;
+                if(anyTilesMoved) {
+                fillOpenTile();
+                anyTilesMoved=false;
+                removeClassFromAll("combined",tiles);
+                checkForGameOver();
+                }
+            }
+        }
+        function slideDown() {
+            timer++;
+            var tiles=$(".tile")
+            var againDown=false;
+            for(var i=tiles.length-5; i>=0; i--) {
+                if($(tiles[i]).hasClass("filled") && !$(tiles[i+4]).hasClass("filled")&&!$(tiles[i-4]).hasClass("combined")){
+                    moveTile(i,i+4,tiles[i].textContent,tiles)
+                    againDown=true;
+                    anyTilesMoved=true;
+                }else if($(tiles[i]).hasClass("filled")&&tiles[i].textContent===tiles[i+4].textContent&&!$(tiles[i]).hasClass("combined")&&!$(tiles[i+4]).hasClass("combined")) {
+                    combineTile(i,i+4,tiles[i].textContent,tiles)
+                    anyTilesMoved=true;
+                    $(tiles[i+4]).addClass("combined")
+                }
+            }
+            if(!againDown) {
+                window.clearInterval(slidingDown);
+                timer=4;
+                if(anyTilesMoved) {
+                fillOpenTile();
+                anyTilesMoved=false;
+                removeClassFromAll("combined",tiles);
+                checkForGameOver();
+                }
+            }
+        }
+        function slideLeft() {
+            timer++;
+            var tiles=$(".tile")
+            var againLeft=false;
+            for(var i=1; i<tiles.length; i+=4) {
+                if($(tiles[i]).hasClass("filled") && !$(tiles[i-1]).hasClass("filled")){
+                    moveTile(i,i-1,tiles[i].textContent,tiles)
+                    againLeft=true;
+                    anyTilesMoved=true;
+                }else if($(tiles[i]).hasClass("filled")&&tiles[i].textContent===tiles[i-1].textContent&&!$(tiles[i]).hasClass("combined")&&!$(tiles[i-1]).hasClass("combined")) {
+                    combineTile(i,i-1,tiles[i].textContent,tiles)
+                    anyTilesMoved=true;
+                    $(tiles[i-1]).addClass("combined")
+                }
+                    if(i>=13&&i<tiles.length-1) {
+                        i-=15;
+                    }
+            }
+            if(!againLeft) {
+                window.clearInterval(slidingLeft);
+                timer=4;
+                if(anyTilesMoved) {
+                fillOpenTile();
+                anyTilesMoved=false;
+                removeClassFromAll("combined",tiles);
+                checkForGameOver();
+                }
+            }
+        }
+        function slideRight() {
+            timer++;
+            var tiles=$(".tile")
+            var againRight=false;
+            for(var i=2; i!==16; i+=4) {
+                if($(tiles[i]).hasClass("filled") && !$(tiles[i+1]).hasClass("filled")){
+                    moveTile(i,i+1,tiles[i].textContent,tiles)
+                    againRight=true;
+                    anyTilesMoved=true;
+                }else if($(tiles[i]).hasClass("filled")&&tiles[i].textContent===tiles[i+1].textContent&&!$(tiles[i]).hasClass("combined")&&!$(tiles[i+1]).hasClass("combined")) {
+                    combineTile(i,i+1,tiles[i].textContent,tiles)
+                    anyTilesMoved=true;
+                    $(tiles[i+1]).addClass("combined")
+                }
+                    if(i>=13&&i<tiles.length) {
+                        i-=17;
+                    }
+            }
+            if(!againRight) {
+                window.clearInterval(slidingRight);
+                timer=4;
+                if(anyTilesMoved) {
+                fillOpenTile();
+                anyTilesMoved=false;
+                removeClassFromAll("combined",tiles);
+                checkForGameOver();
+                }
+            }
+        }
+        $(".restart").click(function() {
+            tiles=$(".tile");
+            for(var i=0; i<tiles.length; i++) {
+                tiles[i].textContent="";
+                tiles[i].className="tile open"
+            }
+            fillOpenTile();
+            fillOpenTile();
+        })
+        /*Stop arrow key scrolling on the webpage*/
+        window.addEventListener("keydown", function(e) {
+            if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                e.preventDefault();
+            }
+        }, false);
+        /*Check for arrow key being pressed*/
+        window.addEventListener("keyup",function(e){
+            if(timer>=4) {
+            if(e.keyCode===37) {
+                timer=0;
+                slidingLeft=window.setInterval(slideLeft,30)
+            }
+            if(e.keyCode===38) {
+                timer=0;
+                slidingUp=window.setInterval(slideUp,30)
+            }
+            if(e.keyCode===39) {
+                timer=0;
+                slidingRight=window.setInterval(slideRight,30)
+            }
+            if(e.keyCode===40) {
+                timer=0;
+                slidingDown=window.setInterval(slideDown,30)
+            }
+            }
+        })
+        </script>
+    </body>
+</html>
